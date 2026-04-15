@@ -36,6 +36,29 @@
       color: red;
   
     }
+    #calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 20px;
+}
+
+.day {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.today {
+  background: #4f46e5;
+  color: white;
+}
+
+.has-task {
+  border: 2px solid #4f46e5;
+}
   </style>
 </head>
 <body>
@@ -45,17 +68,26 @@
 <input type="text" id="taskInput" placeholder="課題名">
 <input type="date" id="dateInput">
 <button onclick="addTask()">追加</button>
+<h2>カレンダー</h2>
+<h2 id="monthLabel" style="text-align:center;"></h2>
 
+<div style="display:flex; justify-content:space-between;">
+  <button onclick="prevMonth()">←</button>
+  <button onclick="nextMonth()">→</button>
+</div>
+<div id="calendar"></div>
 <ul id="taskList"></ul>
-
+<button onclick="render()">全て表示に戻す</button>
 <button onclick="openForm()">改善案を送る</button>
 
 <script>
+  
+  let currentDate = new Date();
 function openForm() {
   window.open("https://forms.gle/gPHnJ9wESqZqMsVW8");
 }
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-
+updateMonthLabel();
 function saveTasks() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 }
@@ -114,10 +146,50 @@ function render() {
 
     list.appendChild(li);
   });
+
+renderCalendar();
 }
 
 render();
+function renderCalendar() {
+  const calendar = document.getElementById("calendar");
+  calendar.innerHTML = "";
 
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const today = new Date();
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    calendar.innerHTML += `<div></div>`;
+  }
+
+  for (let d = 1; d <= lastDate; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    const hasTask = tasks.some(task => task.date === dateStr);
+
+    const isToday =
+      d === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear();
+
+    let className = "day";
+    if (isToday) className += " today";
+    if (hasTask) className += " has-task";
+
+    calendar.innerHTML += `
+      <div class="${className}" onclick="filterByDate('${dateStr}')">
+        ${d}
+      </div>
+    `;
+  }
+}
+
+renderCalendar();
 
 let feedbacks = JSON.parse(localStorage.getItem("feedbacks")) || [];
 
@@ -146,9 +218,41 @@ function renderFeedbacks() {
     list.appendChild(li);
   });
 }
-
 renderFeedbacks();
+function filterByDate(date) {
+  const list = document.getElementById("taskList");
+  list.innerHTML = "";
 
+  const filtered = tasks.filter(task => task.date === date);
+
+  filtered.forEach((task, index) => {
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      <span>${task.text} (${task.date})</span>
+    `;
+
+    list.appendChild(li);
+  });
+}
+function prevMonth() {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  renderCalendar();
+  updateMonthLabel();
+}
+
+function nextMonth() {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  renderCalendar();
+  updateMonthLabel();
+}
+function updateMonthLabel() {
+  const label = document.getElementById("monthLabel");
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1;
+
+  label.textContent = `${year}年 ${month}月`;
+}
 </script>
 
 </body>
